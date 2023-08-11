@@ -11,22 +11,19 @@ import pandas_datareader as data
 import yfinance as yf 
 import requests
 
-# Define function to load data for a given stock symbol
 def load_data(stock_symbol):
-    url = f'https://www.google.com/finance/quote/{stock_symbol}/history'  # Replace with the actual URL pattern
+    url = f'https://www.google.com/finance/quote/{stock_symbol}/history'  
     response = requests.get(url)
     
     if response.status_code == 200:
         data = response.content.decode('utf-8')
-        print(data)  # Print the data for debugging
+        print(data)  
         df = pd.read_csv(StringIO(data))
-        # Filter and process the DataFrame as needed
         return df
     else:
         st.error(f"Failed to fetch data for stock symbol {stock_symbol}")
         return None
 
-# Define functions
 def str_to_datetime(s):
     return pd.to_datetime(s)
 
@@ -76,10 +73,11 @@ def windowed_df_to_date_X_y(windowed_dataframe):
     Y = df_as_np[:, -1]
 
     return dates, X.astype(np.float32), Y.astype(np.float32)
-# Create Streamlit app
+
+
+# Streamlit app
 st.title("Stock Price Prediction")
 
-# Sidebar for user inputs
 st.sidebar.header("User Inputs")
 stock_symbol = st.sidebar.selectbox("Select Stock Symbol", ["AAPL", "ABNB", "ADBE", "AMC", "AMZN", "AMD", "BABA", "BAC", "BA",
     "BB", "CGX.TO", "CLSK", "CMG", "CSCO", "CRM", "CVX", "DIA", "DIS", "DNA",
@@ -95,11 +93,8 @@ end_date = st.sidebar.date_input("End Date", datetime.date.today())
 window_size = st.sidebar.slider("Window Size", min_value=1, max_value=10, value=3)
 submit_button = st.sidebar.button("Submit")
 
-# Display prediction results
 if submit_button:
-    # Load data for the specified stock symbol
     df = yf.download(stock_symbol, start=start_date, end=end_date)
-    # Preprocess data based on user inputs
     windowed_df = df_to_windowed_df(df, start_date, end_date, window_size)
     dates, X, y = windowed_df_to_date_X_y(windowed_df)
     q_80 = int(len(dates) * .8)
@@ -108,12 +103,10 @@ if submit_button:
     dates_val, X_val, y_val = dates[q_80:q_90], X[q_80:q_90], y[q_80:q_90]
     dates_test, X_test, y_test = dates[q_90:], X[q_90:], y[q_90:]
 
-    # Build and train the model
     model = Sequential([layers.Input((window_size, 1)), layers.LSTM(64), layers.Dense(32, activation='relu'), layers.Dense(32, activation='relu'), layers.Dense(1)])
     model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'])
     model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100, batch_size=32)
 
-    # Predictions
     train_predictions = model.predict(X_train).flatten()
     val_predictions = model.predict(X_val).flatten()
     test_predictions = model.predict(X_test).flatten()
@@ -126,7 +119,6 @@ if submit_button:
         recursive_predictions.append(next_prediction)
         last_window[-1] = next_prediction
 
-    # Display results using Streamlit components
     st.subheader("Training Predictions")
     st.line_chart(pd.DataFrame({'Date': dates_train, 'Predictions': train_predictions, 'Observations': y_train}).set_index('Date'))
 
@@ -137,7 +129,6 @@ if submit_button:
     st.line_chart(pd.DataFrame({'Date': dates_test, 'Predictions': test_predictions, 'Observations': y_test}).set_index('Date'))
 
     recursive_dates_list = recursive_dates.tolist()
-    # Convert NumPy array to Python list for recursive_predictions
     recursive_predictions_list = [float(pred) for pred in recursive_predictions]
 
     st.subheader("Recursive Predictions")
