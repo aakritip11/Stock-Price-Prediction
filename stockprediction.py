@@ -76,23 +76,22 @@ def windowed_df_to_date_X_y(windowed_dataframe):
     Y = df_as_np[:, -1]
 
     return dates, X.astype(np.float32), Y.astype(np.float32)
-
 # Create Streamlit app
 st.title("Stock Price Prediction")
 
 # Sidebar for user inputs
 st.sidebar.header("User Inputs")
-stock_symbol = st.sidebar.selectbox("Select Stock Symbol", ["AAPL", "ABNB", "ADBE", "AMC", "AMZN", "AMD", "APP", "BABA", "BAC", "BA",
+stock_symbol = st.sidebar.selectbox("Select Stock Symbol", ["AAPL", "ABNB", "ADBE", "AMC", "AMZN", "AMD", "BABA", "BAC", "BA",
     "BB", "CGX.TO", "CLSK", "CMG", "CSCO", "CRM", "CVX", "DIA", "DIS", "DNA",
     "DNUT", "DWAC", "EDBL", "ENVX", "ETSY", "F", "FB", "GME", "GM", "GOOG",
     "GOOGL", "HD", "ILMN", "INTC", "INVZ", "ITC", "JNJ", "JPM", "KO", "LQR",
     "LUMN", "MCD", "MELI", "MGNI", "MS", "MSFT", "MRNA", "NKE", "NOK", "NVDA",
     "ORGN", "PEP", "PLUG", "PYPL", "PFE", "QQQ", "RELIANCE", "SINGD", "SONO",
     "SPCE", "SPY", "SQ", "T", "TTD", "TPR", "TSLA", "TWTR", "UBER", "UNH", "V",
-    "VXX", "WELL.TO", "WFC", "WIPRO", "WMT", "XOM", "ZM", "ZOMATO"])
+    "VXX", "WELL.TO", "WFC", "WMT", "XOM", "ZM"])
 
-start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2022-08-10'))
-end_date = st.sidebar.date_input("End Date", pd.to_datetime('2023-08-09'))
+start_date = st.sidebar.date_input("Start Date", datetime.date.today()-datetime.timedelta(days=365))
+end_date = st.sidebar.date_input("End Date", datetime.date.today())
 window_size = st.sidebar.slider("Window Size", min_value=1, max_value=10, value=3)
 submit_button = st.sidebar.button("Submit")
 
@@ -112,7 +111,7 @@ if submit_button:
     # Build and train the model
     model = Sequential([layers.Input((window_size, 1)), layers.LSTM(64), layers.Dense(32, activation='relu'), layers.Dense(32, activation='relu'), layers.Dense(1)])
     model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'])
-    model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100)
+    model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100, batch_size=32)
 
     # Predictions
     train_predictions = model.predict(X_train).flatten()
@@ -138,7 +137,6 @@ if submit_button:
     st.line_chart(pd.DataFrame({'Date': dates_test, 'Predictions': test_predictions, 'Observations': y_test}).set_index('Date'))
 
     recursive_dates_list = recursive_dates.tolist()
-
     # Convert NumPy array to Python list for recursive_predictions
     recursive_predictions_list = [float(pred) for pred in recursive_predictions]
 
