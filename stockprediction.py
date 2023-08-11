@@ -82,7 +82,7 @@ st.sidebar.header("User Inputs")
 stock_symbol = st.sidebar.selectbox("Select Stock Symbol", ["AAPL", "ABNB", "ADBE", "AMC", "AMZN", "AMD", "BABA", "BAC", "BA",
     "BB", "CGX.TO", "CLSK", "CMG", "CSCO", "CRM", "CVX", "DIA", "DIS", "DNA",
     "DNUT", "DWAC", "EDBL", "ENVX", "ETSY", "F", "FB", "GME", "GM", "GOOG",
-    "GOOGL", "HD", "ILMN", "INTC", "INVZ", "ITC", "JNJ", "JPM", "KO", "LQR",
+    "GOOGL", "HD", "ILMN", "INTC", "INVZ", "ITC", "IRCTC.NS", "JNJ", "JPM", "KO", "LQR",
     "LUMN", "MCD", "MELI", "MGNI", "MS", "MSFT", "MRNA", "NKE", "NOK", "NVDA",
     "ORGN", "PEP", "PLUG", "PYPL", "PFE", "QQQ", "RELIANCE", "SINGD", "SONO",
     "SPCE", "SPY", "SQ", "T", "TTD", "TPR", "TSLA", "TWTR", "UBER", "UNH", "V",
@@ -104,7 +104,7 @@ if submit_button:
     dates_test, X_test, y_test = dates[q_90:], X[q_90:], y[q_90:]
 
     model = Sequential([layers.Input((window_size, 1)), layers.LSTM(64), layers.Dense(32, activation='relu'), layers.Dense(32, activation='relu'), layers.Dense(1)])
-    model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'])
+    model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'], run_eagerly=True)
     model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100, batch_size=32)
 
     train_predictions = model.predict(X_train).flatten()
@@ -113,12 +113,14 @@ if submit_button:
 
     recursive_predictions = []
     recursive_dates = np.concatenate([dates_val, dates_test])
-    for target_date in recursive_dates:
-        last_window = deepcopy(X_train[-1])
-        next_prediction = model.predict(np.array([last_window])).flatten()
-        recursive_predictions.append(next_prediction)
-        last_window[-1] = next_prediction
+    last_window = deepcopy(X_train[-1])  
 
+    for _ in range(len(recursive_dates)):
+        next_prediction = model.predict(np.array([last_window])).flatten()
+        last_window[-1] = next_prediction 
+        recursive_predictions.append(next_prediction)
+
+    
     st.subheader("Training Predictions")
     st.line_chart(pd.DataFrame({'Date': dates_train, 'Predictions': train_predictions, 'Observations': y_train}).set_index('Date'))
 
